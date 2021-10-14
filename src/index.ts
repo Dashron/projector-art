@@ -25,21 +25,27 @@ app.get("/", (req, res) => {
 
 // Make all images on the page invisible, then show the first image full screen and cycle through the images every 5 seconds
 const scriptContents = `
-	<script>
-		document.querySelectorAll("img").forEach(img => {
-			img.style.visibility = "hidden";
-		});
-		document.querySelector("img").style.visibility = "visible";
-		setInterval(() => {
-			let current = document.querySelector("img");
-			let next = current.nextElementSibling;
-			if (next == null) {
-				next = current.parentElement.firstElementChild;
-			}
-			current.style.visibility = "hidden";
-			next.style.visibility = "visible";
-		}, 5000);
-	</script>
+	let currentImage = 0;
+
+	function loadNext() {
+		let next = new Image();
+		currentImage += 1;
+		next.src = imgSrcs[currentImage];
+	}
+
+    let image = document.getElementById('image');
+	image.src = imgSrcs[currentImage];
+
+	// This ensures it takes 8 hours no matter how many images exist
+	// const interval = ((8 * 60 * 60) / imgSrcs.length) * 1000;
+	const interval = 1000;
+
+	setInterval(() => {
+		let image = document.getElementById('image');
+		image.src = imgSrcs[currentImage];
+		loadNext();
+	}, interval);
+	console.log('interval', ((8 * 60 * 60) / imgSrcs.length) * 1000);
 `;
 
 /*
@@ -51,14 +57,21 @@ app.get("/:folder", (req, res) => {
 			res.send("Error reading file");
 		} else {
 			// build a list of links
-			let links = "";
+			let links = [];
+
 			for (let i = 0; i < files.length; i++) {
-				links += `<img src="/${req.params.folder}/${encodeURIComponent(files[i])}" /><br>`;
+				links.push(`"/${req.params.folder}/${encodeURIComponent(files[i])}"`);
 			}
 
-			links += scriptContents;
+			let response = `
+			<img src="" id="image" />
+			<script>
+				var imgSrcs = [${links.join(', ')}];
+				${scriptContents}
+			</script>`
+
 			// send the list of links
-			res.send(links);
+			res.send(response);
 		}
 	});
 });
